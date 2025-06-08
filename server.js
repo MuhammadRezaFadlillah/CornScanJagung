@@ -1,6 +1,7 @@
 // server.js
 require('dotenv').config(); // Muat variabel dari file .env
 const express = require('express');
+const path = require('path'); // Tambahkan ini
 const mysql = require('mysql2/promise'); // Menggunakan versi promise untuk async/await
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -14,9 +15,12 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Limit untuk menerima gambar Base64
 
+// --- Sajikan file statis dari folder dist atau public ---
+app.use(express.static(path.join(__dirname, 'dist'))); // Sesuaikan dengan folder output Webpack Anda
+
 // --- Konstanta & Konfigurasi ---
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-that-is-long-and-secure';
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001; // Port untuk API backend Anda
 
 // --- Koneksi Database ---
 const dbConfig = {
@@ -40,11 +44,19 @@ connectToDatabase();
 
 // --- Konfigurasi Nodemailer ---
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER, // Ambil dari file .env
-        pass: process.env.EMAIL_PASS    // Ambil dari file .env
-    }
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('SMTP Error:', error);
+  } else {
+    console.log('SMTP Server ready');
+  }
 });
 
 // --- Middleware Verifikasi JWT ---
@@ -264,7 +276,22 @@ app.get('/api/stats', verifyToken, async (req, res) => {
     }
 });
 
-// --- Start the Server ---
+// Optional: fallback ke index.html untuk SPA
+// Ini harus ditempatkan setelah semua rute API Anda
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist/index.html'));
+});
+
+
+// --- Jalankan server ---
+// Pastikan PORT untuk server statis (misalnya 3000) berbeda dengan PORT untuk API backend (misalnya 3001)
+// Anda memiliki PORT 3001 untuk API, jadi kita akan menggunakan PORT 3000 untuk server statis
+const FRONTEND_PORT = process.env.FRONTEND_PORT || 3000;
+app.listen(FRONTEND_PORT, () => {
+  console.log(`Frontend server berjalan di http://localhost:${FRONTEND_PORT}`);
+});
+
+// Ini adalah listener untuk API Anda, tetap gunakan PORT yang sudah ada (misalnya 3001)
 app.listen(PORT, () => {
   console.log(`Backend API is running on http://localhost:${PORT}`);
 });

@@ -44,10 +44,16 @@ module.exports = {
       template: "./index.html",
       favicon: "./public/logo.png",
     }),
-    new CopyWebpackPlugin({
-      patterns: [
-        { from: "public/model", to: "model" }
-      ],
-    }),
+   new CopyWebpackPlugin({
+  patterns: [
+    { 
+      from: 'public', 
+      to: '', 
+      globOptions: {
+        ignore: ['**/index.html']  // abaikan index.html agar tidak disalin
+      }
+    }
+  ]
+})
   ]
 };

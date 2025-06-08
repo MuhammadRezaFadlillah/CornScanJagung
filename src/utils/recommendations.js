@@ -1,5 +1,7 @@
+// src/utils/recommendations.js
+
 export const recommendations = {
-    "Sehat": {
+    "Sehat": { // Nama kelas ini HARUS sama persis dengan output model Anda untuk 'Sehat'
         icon: "🌿",
         title: "Sehat",
         description: "Daun jagung dalam kondisi sehat dan optimal.",
@@ -11,7 +13,7 @@ export const recommendations = {
         color: "green",
         severity: "low"
     },
-    "Hawar": {
+    "Hawar": { // Nama kelas ini HARUS sama persis dengan output model Anda untuk 'Hawar'
         icon: "🟠",
         title: "Hawar Daun (Leaf Blight)",
         description: "Bercak kecoklatan memanjang, cepat menyebar di permukaan daun.",
@@ -24,7 +26,7 @@ export const recommendations = {
         color: "orange",
         severity: "medium"
     },
-    "Karat": {
+    "Karat": { // Nama kelas ini HARUS sama persis dengan output model Anda untuk 'Karat'
         icon: "🧡",
         title: "Karat Daun (Common Rust)",
         description: "Bintik kecil berwarna oranye atau kecoklatan seperti serbuk di permukaan daun.",
@@ -36,7 +38,7 @@ export const recommendations = {
         color: "orange",
         severity: "medium"
     },
-    "Layu": {
+    "Layu": { // Nama kelas ini HARUS sama persis dengan output model Anda untuk 'Layu'
         icon: "🔴",
         title: "Layu (Wilt)",
         description: "Daun menguning lalu layu meskipun tanah cukup air, batang kadang membusuk.",
@@ -49,9 +51,17 @@ export const recommendations = {
         color: "red",
         severity: "high"
     }
+    // Tambahkan entri lain di sini sesuai dengan kelas penyakit yang dideteksi oleh model Anda
+    // "NamaKelasLain": { /* ... detail rekomendasi ... */ },
 };
 
 export const getRecommendation = (className) => {
+    // Jika className memiliki spasi di awal/akhir atau perbedaan kapitalisasi, 
+    // Anda mungkin perlu menormalisasi stringnya terlebih dahulu.
+    // Contoh: const normalizedClassName = className.trim();
+    
+    // Mengembalikan objek rekomendasi dari 'recommendations' berdasarkan className.
+    // Jika tidak ditemukan, kembalikan objek default.
     return recommendations[className] || {
         icon: "❓",
         title: "Tidak Diketahui",

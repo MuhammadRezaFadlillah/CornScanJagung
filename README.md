@@ -68,3 +68,127 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+```
+cornScan-main
+├─ .babelrc
+├─ .env
+├─ cornScan-main.zip
+├─ eslint.config.mjs
+├─ index.html
+├─ jsconfig.json
+├─ next.config.mjs
+├─ package-lock.json
+├─ package.json
+├─ postcss.config.js
+├─ postcss.config.mjs
+├─ public
+│  ├─ assets
+│  │  ├─ download.jpeg
+│  │  └─ loading.lottie
+│  ├─ favicon.ico
+│  ├─ favicon.svg
+│  ├─ file.svg
+│  ├─ globe.svg
+│  ├─ index.html
+│  ├─ logo.png
+│  ├─ logo192.png
+│  ├─ logo512.png
+│  ├─ manifest.json
+│  ├─ model
+│  │  ├─ group1-shard1of4.bin
+│  │  ├─ group1-shard2of4.bin
+│  │  ├─ group1-shard3of4.bin
+│  │  ├─ group1-shard4of4.bin
+│  │  └─ model.json
+│  ├─ model_hasil_konversi_graph
+│  │  ├─ group1-shard1of4.bin
+│  │  ├─ group1-shard2of4.bin
+│  │  ├─ group1-shard3of4.bin
+│  │  ├─ group1-shard4of4.bin
+│  │  └─ model.json
+│  ├─ next.svg
+│  ├─ robots.txt
+│  ├─ vercel.svg
+│  └─ window.svg
+├─ README.md
+├─ server.js
+├─ src
+│  ├─ app
+│  │  ├─ dashboard
+│  │  │  └─ page.js
+│  │  ├─ favicon.ico
+│  │  ├─ globals.css
+│  │  ├─ layout.js
+│  │  ├─ login
+│  │  │  └─ page.js
+│  │  ├─ page.js
+│  │  ├─ penyakit
+│  │  │  └─ page.js
+│  │  ├─ register
+│  │  │  └─ page.js
+│  │  └─ riwayat
+│  │     └─ page.js
+│  ├─ App.css
+│  ├─ App.jsx
+│  ├─ App.test.js
+│  ├─ assets
+│  │  └─ loading.lottie
+│  ├─ components
+│  │  ├─ about
+│  │  │  ├─ BenefitsSection.jsx
+│  │  │  ├─ DiseaseSection.jsx
+│  │  │  ├─ FaqSection.jsx
+│  │  │  ├─ MissionPointsSection.jsx
+│  │  │  ├─ StatisticsSection.jsx
+│  │  │  └─ TechnologySection.jsx
+│  │  ├─ AboutSection.jsx
+│  │  ├─ CameraTab.jsx
+│  │  ├─ Card.jsx
+│  │  ├─ ErrorDisplay.jsx
+│  │  ├─ FileInput.jsx
+│  │  ├─ ImagePreview.jsx
+│  │  ├─ LoadingSpinner.jsx
+│  │  ├─ ModelStatus.jsx
+│  │  ├─ Navigation.jsx
+│  │  ├─ PredictionResult.jsx
+│  │  ├─ ProtectedRoute.jsx
+│  │  └─ UploadTab.jsx
+│  ├─ css
+│  │  ├─ AuthPage.css
+│  │  ├─ DashboardPage.css
+│  │  ├─ HistoryPage.css
+│  │  └─ ProfilePage.css
+│  ├─ data
+│  │  └─ aboutPageData.js
+│  ├─ hooks
+│  │  ├─ useCamera.js
+│  │  ├─ usePrediction.js
+│  │  └─ useTensorFlowModel.js
+│  ├─ index.css
+│  ├─ index.js
+│  ├─ logo.svg
+│  ├─ pages
+│  │  ├─ AboutPage.jsx
+│  │  ├─ CornLeafDetectionPage.jsx
+│  │  ├─ DashboardPage.jsx
+│  │  ├─ ForgotPasswordPage.jsx
+│  │  ├─ HistoryPage.jsx
+│  │  ├─ HomePage.jsx
+│  │  ├─ LoginPage.jsx
+│  │  ├─ ProfilePage.jsx
+│  │  ├─ RegisterPage.jsx
+│  │  ├─ ResetPasswordPage.jsx
+│  │  └─ Team.jsx
+│  ├─ reportWebVitals.js
+│  ├─ services
+│  │  └─ predictionService.js
+│  ├─ setupTests.js
+│  └─ utils
+│     ├─ detectionUtils.js
+│     ├─ labels.js
+│     └─ recommendations.js
+├─ tailwind.config.js
+└─ webpack.config.js
+
+```

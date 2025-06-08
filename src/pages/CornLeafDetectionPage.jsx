@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Camera, Upload, Save, LogIn } from "lucide-react";
+import { Leaf, Camera, Upload, Save, LogIn, Download } from "lucide-react";
 
-// Import hooks dan komponen lain (tidak berubah)
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 import { useTensorFlowModel } from "../hooks/useTensorFlowModel";
 import { usePrediction } from "../hooks/usePrediction";
 import { useCamera } from "../hooks/useCamera";
@@ -12,34 +14,46 @@ import UploadTab from '../components/UploadTab';
 import CameraTab from '../components/CameraTab';
 import ImagePreview from "../components/ImagePreview";
 import PredictionResult from "../components/PredictionResult";
-import { getRecommendation } from '../utils/recommendations';
+import { getRecommendation } from '../utils/recommendations'; // Pastikan path ini benar
 
 const CornLeafDetectionPage = () => {
     const navigate = useNavigate();
     const { model, isLoadingModel, modelError } = useTensorFlowModel();
     const { result, isPredicting, predictionError, performPrediction, resetPrediction } = usePrediction();
     
-    // State `preview` akan menyimpan data gambar Base64 dari kamera atau upload
     const [preview, setPreview] = useState(null);
     const [activeTab, setActiveTab] = useState('upload');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState('');
+    const [userName, setUserName] = useState('');
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         setIsLoggedIn(!!token);
+        if (token) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user && user.name) {
+                setUserName(user.name);
+            }
+        }
     }, []);
 
-    // --- FUNGSI UTAMA YANG DIPERBARUI ---
     const saveHistory = async () => {
-        // Guard clause: pastikan ada hasil, pengguna login, DAN ada gambar di preview
         if (!result || !isLoggedIn || !preview) return; 
         
         const token = localStorage.getItem('token');
         setIsSaving(true);
         setSaveMessage('');
-        const recommendationData = getRecommendation(result.className);
+        
+        // Dapatkan objek rekomendasi lengkap
+        const recommendationObj = getRecommendation(result.className);
+        
+        // Ubah array actions menjadi string tunggal dengan baris baru untuk penyimpanan di backend
+        // Menggunakan actions dari objek rekomendasi
+        const recommendationData = recommendationObj && Array.isArray(recommendationObj.actions) 
+                                   ? recommendationObj.actions.join('\n') 
+                                   : 'Tidak ada rekomendasi tindakan.';
         
         try {
             const response = await fetch('http://localhost:3001/api/history/save', {
@@ -51,12 +65,12 @@ const CornLeafDetectionPage = () => {
                 body: JSON.stringify({
                     detection_result: result.className,
                     accuracy: result.probability,
-                    recommendation: recommendationData,
-                    image_data: preview // <-- KIRIM DATA GAMBAR DARI STATE PREVIEW
+                    // Mengirim deskripsi umum dari rekomendasiObj, atau 'actions' jika itu yang diharapkan backend
+                    recommendation: recommendationObj.description || 'Tidak ada deskripsi rekomendasi.', // Sesuaikan ini jika backend mengharapkan 'actions'
+                    image_data: preview 
                 })
             });
 
-            // Cek jika token ditolak (kadaluwarsa atau tidak valid)
             if (response.status === 401 || response.status === 403) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
@@ -74,13 +88,146 @@ const CornLeafDetectionPage = () => {
             setIsSaving(false);
         }
     };
-    // --- AKHIR FUNGSI YANG DIPERBARUI ---
 
-    // Fungsi ini sudah benar, ia menyimpan data gambar Base64 ke state `preview`
+    // --- FUNGSI DOWNLOAD PDF ---
+    const downloadPdf = async () => {
+        if (!result || !preview) {
+            alert("Tidak ada hasil deteksi atau gambar untuk diunduh.");
+            return;
+        }
+
+        const doc = new jsPDF();
+        const detectionDateTime = new Date();
+
+        // Dapatkan objek rekomendasi lengkap dari fungsi getRecommendation
+        const recommendationObj = getRecommendation(result.className);
+        
+        // Menggunakan properti 'actions' dari objek rekomendasi untuk daftar di PDF
+        const recommendationList = recommendationObj && Array.isArray(recommendationObj.actions) 
+                                   ? recommendationObj.actions 
+                                   : ['Tidak ada rekomendasi penanganan yang tersedia.'];
+
+        // Menggunakan properti 'title' dan 'description' dari objek rekomendasi
+        const detectedTitle = recommendationObj.title || result.className;
+        const detectedDescription = recommendationObj.description || "Tidak ada deskripsi tersedia.";
+        const detectedIcon = recommendationObj.icon || ""; // Ambil icon
+
+        // --- Header PDF ---
+        doc.setFontSize(22);
+        doc.text("Laporan Deteksi Penyakit Daun Jagung", 10, 20); // Judul utama
+        doc.setFontSize(10);
+        doc.text("Aplikasi Scanner Daun Jagung - Powered by AI", 10, 27); // Nama aplikasi
+        doc.setLineWidth(0.5);
+        doc.line(10, 30, 200, 30); // Garis pemisah
+
+        // --- Informasi Deteksi ---
+        doc.setFontSize(12);
+        doc.text(`Tanggal Deteksi: ${detectionDateTime.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}`, 10, 40);
+        doc.text(`Waktu Deteksi: ${detectionDateTime.toLocaleTimeString('id-ID')}`, 10, 47);
+        if (userName) {
+            doc.text(`Pengguna: ${userName}`, 10, 54);
+        }
+        doc.text(`Sumber Gambar: ${activeTab === 'upload' ? 'Unggah Gambar' : 'Kamera'}`, 10, userName ? 61 : 54);
+
+        // --- Gambar yang Dideteksi ---
+        const startYImage = userName ? 70 : 63;
+        doc.setFontSize(14);
+        doc.text("Gambar yang Dideteksi:", 10, startYImage);
+
+        if (preview) {
+            const img = new Image();
+            img.src = preview;
+            img.onload = () => {
+                const imgWidth = 80; // Lebar gambar di PDF (sesuaikan jika perlu)
+                const imgHeight = (img.height * imgWidth) / img.width; // Proporsi tinggi otomatis
+                const imgX = 10;
+                const imgY = startYImage + 7; // Posisi Y gambar di bawah judul
+                doc.addImage(preview, 'JPEG', imgX, imgY, imgWidth, imgHeight);
+                
+                // --- Hasil Deteksi ---
+                let currentY = imgY + imgHeight + 10; // Posisi Y setelah gambar
+                doc.setFontSize(14);
+                doc.text("Hasil Deteksi:", 10, currentY);
+                currentY += 10;
+                doc.setFontSize(12);
+                doc.text(`Penyakit Teridentifikasi: ${detectedIcon} ${detectedTitle}`, 10, currentY); // Tambahkan icon
+                currentY += 7;
+                doc.text(`Deskripsi: ${detectedDescription}`, 10, currentY); // Tambahkan deskripsi
+                currentY += 7;
+                doc.text(`Tingkat Keyakinan: ${(result.probability * 100).toFixed(2)}%`, 10, currentY);
+                currentY += 17; // Spasi sebelum rekomendasi
+
+                // --- Rekomendasi Penanganan (Daftar Berpoin) ---
+                doc.setFontSize(14);
+                doc.text("Rekomendasi Penanganan:", 10, currentY);
+                currentY += 10; // Spasi setelah judul rekomendasi
+                doc.setFontSize(12);
+
+                // Iterasi setiap item dalam daftar rekomendasi dan menuliskannya sebagai poin bernomor
+                recommendationList.forEach((item, index) => {
+                    const listItemText = `${index + 1}. ${item}`; // Format "1. Rekomendasi pertama"
+                    // Split teks jika terlalu panjang agar tidak keluar batas halaman
+                    const splitText = doc.splitTextToSize(listItemText, 180); // 180mm lebar untuk teks
+                    doc.text(splitText, 10, currentY);
+                    // Menyesuaikan posisi Y untuk baris berikutnya, memperhitungkan tinggi teks dan spasi antar poin
+                    currentY += (splitText.length * 5) + 3; // (jumlah baris * perkiraan tinggi baris) + spasi ekstra
+                });
+
+                // --- Disclaimer dan Catatan Kaki ---
+                // Pastikan currentY tidak menimpa disclaimer di bagian bawah halaman
+                currentY = Math.max(currentY, doc.internal.pageSize.height - 30); 
+                const disclaimerText = "Catatan: Hasil deteksi ini dihasilkan oleh model AI dan ditujukan sebagai panduan awal. Untuk diagnosis dan penanganan yang lebih akurat, sangat disarankan untuk berkonsultasi dengan ahli pertanian atau agronomis.";
+                const splitDisclaimer = doc.splitTextToSize(disclaimerText, 180);
+                doc.setFontSize(8);
+                doc.setTextColor(100); // Warna teks abu-abu
+                doc.text(splitDisclaimer, 10, currentY);
+
+                doc.save(`Laporan_Deteksi_Daun_Jagung_${detectionDateTime.toISOString().slice(0,10)}.pdf`);
+            };
+            img.onerror = () => {
+                alert("Gagal memuat gambar untuk PDF.");
+            };
+        } else {
+            // Logika fallback jika preview tidak tersedia saat mencoba mengunduh (seharusnya tombol di-disable jika tidak ada preview)
+            let currentY = startYImage + 7;
+            doc.setFontSize(14);
+            doc.text("Hasil Deteksi:", 10, currentY);
+            currentY += 10;
+            doc.setFontSize(12);
+            doc.text(`Penyakit Teridentifikasi: ${detectedIcon} ${detectedTitle}`, 10, currentY);
+            currentY += 7;
+            doc.text(`Deskripsi: ${detectedDescription}`, 10, currentY);
+            currentY += 7;
+            doc.text(`Tingkat Keyakinan: ${(result.probability * 100).toFixed(2)}%`, 10, currentY);
+            currentY += 17;
+
+            doc.setFontSize(14);
+            doc.text("Rekomendasi Penanganan:", 10, currentY);
+            currentY += 10;
+            doc.setFontSize(12);
+
+            recommendationList.forEach((item, index) => {
+                const listItemText = `${index + 1}. ${item}`;
+                const splitText = doc.splitTextToSize(listItemText, 180);
+                doc.text(splitText, 10, currentY);
+                currentY += (splitText.length * 5) + 3; 
+            });
+
+            currentY = Math.max(currentY, doc.internal.pageSize.height - 30);
+            const disclaimerText = "Catatan: Hasil deteksi ini dihasilkan oleh model AI dan ditujukan sebagai panduan awal. Untuk diagnosis dan penanganan yang lebih akurat, sangat disarankan untuk berkonsultasi dengan ahli pertanian atau agronomis.";
+            const splitDisclaimer = doc.splitTextToSize(disclaimerText, 180);
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text(splitDisclaimer, 10, currentY);
+
+            doc.save(`Laporan_Deteksi_Daun_Jagung_${detectionDateTime.toISOString().slice(0,10)}.pdf`);
+        }
+    };
+
     const processFile = useCallback((file) => {
         const reader = new FileReader();
         reader.onload = (e) => {
-            setPreview(e.target.result); // e.target.result adalah string Base64
+            setPreview(e.target.result); 
             const img = new Image();
             img.src = e.target.result;
             img.onload = () => {
@@ -90,7 +237,6 @@ const CornLeafDetectionPage = () => {
         reader.readAsDataURL(file);
     }, [model, performPrediction]);
 
-    // Hook useCamera sudah benar, ia memanggil `processFile` setelah foto diambil
     const { videoRef, canvasRef, isCameraOpen, cameraError, openCamera, closeCamera, capturePhoto } = useCamera((file) => {
         processFile(file);
         setActiveTab('upload');
@@ -159,8 +305,8 @@ const CornLeafDetectionPage = () => {
 
                         {result && !predictionError && (
                             <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-                                {isLoggedIn ? (
-                                    <>
+                                <div className="flex justify-center space-x-4 mb-4">
+                                    {isLoggedIn && (
                                         <button
                                             onClick={saveHistory}
                                             disabled={isSaving || !!saveMessage}
@@ -169,13 +315,22 @@ const CornLeafDetectionPage = () => {
                                             <Save className="w-5 h-5 mr-2" />
                                             {isSaving ? 'Menyimpan...' : 'Simpan Hasil ke Riwayat'}
                                         </button>
-                                        {saveMessage && (
-                                            <p className={`mt-4 text-sm font-medium ${saveMessage.includes('berhasil') ? 'text-green-600' : 'text-red-600'}`}>
-                                                {saveMessage}
-                                            </p>
-                                        )}
-                                    </>
-                                ) : (
+                                    )}
+                                    <button
+                                        onClick={downloadPdf}
+                                        className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                                        disabled={!result || !preview}
+                                    >
+                                        <Download className="w-5 h-5 mr-2" />
+                                        Unduh Laporan PDF
+                                    </button>
+                                </div>
+                                {saveMessage && (
+                                    <p className={`mt-4 text-sm font-medium ${saveMessage.includes('berhasil') ? 'text-green-600' : 'text-red-600'}`}>
+                                        {saveMessage}
+                                    </p>
+                                )}
+                                {!isLoggedIn && (
                                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                         <div className="flex items-center justify-center">
                                             <LogIn className="w-6 h-6 mr-3 text-blue-600" />
